@@ -3,6 +3,7 @@ package com.duckblade.osrs.easyteleports;
 import com.duckblade.osrs.easyteleports.replacers.DiaryCape;
 import com.duckblade.osrs.easyteleports.replacers.DrakansMedallion;
 import com.duckblade.osrs.easyteleports.replacers.KharedstMemoirs;
+import com.duckblade.osrs.easyteleports.replacers.NecklaceOfPassage;
 import com.duckblade.osrs.easyteleports.replacers.PharaohSceptre;
 import com.duckblade.osrs.easyteleports.replacers.Replacer;
 import com.duckblade.osrs.easyteleports.replacers.RingOfDueling;
@@ -30,9 +31,9 @@ import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.widgets.ComponentID;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetID;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -92,6 +93,7 @@ public class EasyTeleportsPlugin extends Plugin
 		replacers.addBinding().to(RingOfShadows.class);
 		replacers.addBinding().to(SlayerRing.class);
 		replacers.addBinding().to(XericsTalisman.class);
+		replacers.addBinding().to(NecklaceOfPassage.class);
 	}
 
 	@Override
@@ -118,20 +120,22 @@ public class EasyTeleportsPlugin extends Plugin
 	public void onWidgetLoaded(WidgetLoaded e)
 	{
 		// chatbox dialog
-		if (e.getGroupId() == WidgetInfo.DIALOG_OPTION_OPTIONS.getGroupId())
+		if (e.getGroupId() == InterfaceID.DIALOG_OPTION)
 		{
-			clientThread.invokeLater(() -> replaceWidgetChildren(WidgetInfo.DIALOG_OPTION_OPTIONS, Replacer::isApplicableToDialog));
+			//InterfaceID.DIALOG_OPTION
+			Widget chatbox = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
+			clientThread.invokeLater(() -> replaceWidgetChildren(chatbox, Replacer::isApplicableToDialog));
 		}
 
 		// the scroll thing that xeric's talisman uses
 		// annoyingly, the header text and teleport entries share a groupId (187.0 vs 187.3),
 		// but don't share a parent with that same groupId, their parent is 164.16
-		if (e.getGroupId() == WidgetID.ADVENTURE_LOG_ID)
+		if (e.getGroupId() == InterfaceID.ADVENTURE_LOG)
 		{
 			clientThread.invokeLater(() ->
 			{
 				Widget advLogHeader = getAdventureLogHeader();
-				replaceWidgetChildren(WidgetID.ADVENTURE_LOG_ID, 3, (r, w) -> r.isApplicableToAdventureLog(advLogHeader));
+				replaceWidgetChildren(InterfaceID.ADVENTURE_LOG, 3, (r, w) -> r.isApplicableToAdventureLog(advLogHeader));
 			});
 			return;
 		}
@@ -155,11 +159,6 @@ public class EasyTeleportsPlugin extends Plugin
 		}
 	}
 
-	private void replaceWidgetChildren(WidgetInfo widgetInfo, BiPredicate<Replacer, Widget> filterSelector)
-	{
-		replaceWidgetChildren(widgetInfo.getGroupId(), widgetInfo.getChildId(), filterSelector);
-	}
-
 	private void replaceWidgetChildren(int groupId, int entriesChildId, BiPredicate<Replacer, Widget> filterSelector)
 	{
 		Widget root = client.getWidget(groupId, entriesChildId);
@@ -168,6 +167,11 @@ public class EasyTeleportsPlugin extends Plugin
 			return;
 		}
 
+		replaceWidgetChildren(root, filterSelector);
+	}
+
+	private void replaceWidgetChildren(Widget root, BiPredicate<Replacer, Widget> filterSelector)
+	{
 		Widget[] children = root.getChildren();
 		if (children == null)
 		{
@@ -210,7 +214,7 @@ public class EasyTeleportsPlugin extends Plugin
 
 	private Widget getAdventureLogHeader()
 	{
-		Widget adventureLogRoot = client.getWidget(WidgetInfo.ADVENTURE_LOG);
+		Widget adventureLogRoot = client.getWidget(ComponentID.ADVENTURE_LOG_CONTAINER);
 		if (adventureLogRoot == null)
 		{
 			return null;
